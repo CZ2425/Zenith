@@ -8,7 +8,7 @@ an interactive chat experience with local demo responses.
 
 - Responsive split-screen chatbot interface
 - Starter prompt chips for quick interactions
-- Prompt-aware demo replies for summaries, explanations, code help, lists, comparisons, and creative requests
+- Keyword-aware demo replies from Zenith AI
 - Clear-chat control and accessible live message updates
 - No build step, API key, or account required
 
