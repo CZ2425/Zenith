@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zenith AI Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Zenith AI chatbot application">
+      <section class="hero-panel">
+        <nav class="brand-row" aria-label="Zenith AI brand">
+          <div class="logo-mark" aria-hidden="true">Z</div>
+          <span>Zenith AI</span>
+        </nav>
+
+        <div class="hero-copy">
+          <p class="eyebrow">AI Chatbot</p>
+          <h1>Reach the peak of every conversation.</h1>
+          <p>
+            Zenith AI is a polished assistant experience for brainstorming,
+            planning, writing, and quick answers—built with a friendly chat UI.
+          </p>
+        </div>
+
+        <div class="feature-grid" aria-label="Zenith AI highlights">
+          <article>
+            <span aria-hidden="true">⚡</span>
+            <h2>Fast replies</h2>
+            <p>Instant local demo responses keep the conversation flowing.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">🧭</span>
+            <h2>Guided prompts</h2>
+            <p>Starter ideas help users discover what Zenith AI can do.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">🔒</span>
+            <h2>Private demo</h2>
+            <p>No account or API key is required to preview the chatbot.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="chat-panel" aria-label="Chat with Zenith AI">
+        <header class="chat-header">
+          <div>
+            <p class="status"><span></span> Online</p>
+            <h2>Zenith AI</h2>
+          </div>
+          <button class="ghost-button" type="button" id="clearChat">Clear chat</button>
+        </header>
+
+        <div class="messages" id="messages" aria-live="polite" aria-label="Conversation messages">
+          <article class="message bot-message">
+            <div class="avatar" aria-hidden="true">Z</div>
+            <div class="bubble">
+              <p>
+                Hi, I’m Zenith AI. Ask me for ideas, summaries, plans, code help, explanations,
+                or a creative spark.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <div class="prompt-chips" aria-label="Suggested prompts">
+          <button type="button">Plan my productive morning</button>
+          <button type="button">Give me startup ideas</button>
+          <button type="button">Write a friendly email</button>
+        </div>
+
+        <form class="composer" id="chatForm">
+          <label class="sr-only" for="userInput">Message Zenith AI</label>
+          <textarea
+            id="userInput"
+            name="message"
+            rows="1"
+            placeholder="Message Zenith AI..."
+            autocomplete="off"
+            required
+          ></textarea>
+          <button type="submit" aria-label="Send message">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
