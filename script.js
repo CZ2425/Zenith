@@ -357,6 +357,19 @@ function submitMessage(message) {
   addBotReply(trimmedMessage);
 }
 
+function setMode(mode) {
+  activeMode = mode;
+  modeButtons.forEach((button) => {
+    const isActive = button.dataset.mode === mode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  messages.append(createMessage(modeIntros[mode]));
+  scrollToLatestMessage();
+  input.focus();
+}
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   submitMessage(input.value);
@@ -382,6 +395,10 @@ promptButtons.forEach((button) => {
     input.value = button.textContent;
     form.requestSubmit();
   });
+});
+
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
 });
 
 clearButton.addEventListener("click", () => {
