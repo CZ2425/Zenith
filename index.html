@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,12 +21,11 @@
         </nav>
 
         <div class="hero-copy">
-          <p class="eyebrow">AI Chatbot · Zenith AI</p>
+          <p class="eyebrow">AI Chatbot</p>
           <h1>Reach the peak of every conversation.</h1>
           <p>
             Zenith AI is a polished assistant experience for brainstorming,
-            planning, writing, code help, and quick answers—built with a
-            friendly chat UI.
+            planning, writing, and quick answers—built with a friendly chat UI.
           </p>
         </div>
 
@@ -55,40 +54,16 @@
             <p class="status"><span></span> Online</p>
             <h2>Zenith AI</h2>
           </div>
-          <button class="ghost-button" type="button" id="clearChat">
-            Clear chat
-          </button>
+          <button class="ghost-button" type="button" id="clearChat">Clear chat</button>
         </header>
 
-        <div class="mode-toggle" aria-label="Zenith AI response modes">
-          <button
-            type="button"
-            class="is-active"
-            data-mode="strategist"
-            aria-pressed="true"
-          >
-            Strategist
-          </button>
-          <button type="button" data-mode="creator" aria-pressed="false">
-            Creator
-          </button>
-          <button type="button" data-mode="analyst" aria-pressed="false">
-            Analyst
-          </button>
-        </div>
-
-        <div
-          class="messages"
-          id="messages"
-          aria-live="polite"
-          aria-label="Conversation messages"
-        >
+        <div class="messages" id="messages" aria-live="polite" aria-label="Conversation messages">
           <article class="message bot-message">
             <div class="avatar" aria-hidden="true">Z</div>
             <div class="bubble">
               <p>
-                Hi, I’m Zenith AI. Choose a mode or ask me for ideas, summaries,
-                plans, code help, or a creative spark.
+                Hi, I’m Zenith AI. Ask me for ideas, summaries, plans, math help,
+                code help, explanations, or a creative spark.
               </p>
             </div>
           </article>
@@ -96,9 +71,9 @@
 
         <div class="prompt-chips" aria-label="Suggested prompts">
           <button type="button">Plan my productive morning</button>
+          <button type="button">Solve 12 * (8 + 2)</button>
           <button type="button">Give me startup ideas</button>
           <button type="button">Write a friendly email</button>
-          <button type="button">Summarize my notes</button>
         </div>
 
         <form class="composer" id="chatForm">
