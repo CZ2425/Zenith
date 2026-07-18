@@ -28,6 +28,11 @@ const responseLibrary = [
     reply:
       "Hello! I’m Zenith AI—ready to help you brainstorm, organize, explain, summarize, or polish whatever you’re working on.",
   },
+  {
+    keywords: ["are you smart", "smart?", "smart"],
+    reply:
+      "I’m designed to be helpful and quick at reasoning through prompts, solving math, and organizing ideas. Try asking me something challenging.",
+  },
 ];
 
 const promptHandlers = [
