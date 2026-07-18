@@ -33,7 +33,7 @@ const responseLibrary = [
 const promptHandlers = [
   {
     name: "math",
-    patterns: [/\b(calculate|compute|solve|math|evaluate)\b/i, /[0-9][\d\s+\-*/^().=xX%]+/],
+    patterns: [/\b(calculate|compute|solve|math|what is|evaluate)\b/i, /[0-9][\d\s+\-*/^().=xX]+/],
     buildReply: (prompt) => solveMathPrompt(prompt),
   },
   {
@@ -102,229 +102,170 @@ function extractSubject(prompt) {
   return shortenPrompt(cleanedPrompt || prompt, 70);
 }
 
-const mathConstants = {
-  e: Math.E,
-  pi: Math.PI,
-};
-
-const mathFunctions = {
-  abs: Math.abs,
-  ceil: Math.ceil,
-  cos: Math.cos,
-  floor: Math.floor,
-  round: Math.round,
-  sin: Math.sin,
-  sqrt: Math.sqrt,
-  tan: Math.tan,
-};
-
 function normalizeMathPrompt(prompt) {
   return prompt
-    .toLowerCase()
     .replace(/×/g, "*")
     .replace(/÷/g, "/")
-    .replace(/π/g, "pi")
-    .replace(/\bplus\b/g, "+")
-    .replace(/\bminus\b/g, "-")
-    .replace(/\btimes\b/g, "*")
-    .replace(/\bmultiplied by\b/g, "*")
-    .replace(/\bdivided by\b/g, "/")
-    .replace(/\bover\b/g, "/")
-    .replace(/\bto the power of\b/g, "^")
-    .replace(/\bsquared\b/g, "^2")
-    .replace(/\bcubed\b/g, "^3")
-    .replace(/\bsquare root of\b/g, "sqrt")
-    .replace(/%\s*of\b/g, "%*")
-    .replace(/\bpercent of\b/g, "%*");
+    .replace(/\bplus\b/gi, "+")
+    .replace(/\bminus\b/gi, "-")
+    .replace(/\btimes\b/gi, "*")
+    .replace(/\bmultiplied by\b/gi, "*")
+    .replace(/\bdivided by\b/gi, "/")
+    .replace(/\bto the power of\b/gi, "^")
+    .replace(/\bsquared\b/gi, "^2")
+    .replace(/\bcubed\b/gi, "^3");
 }
 
 function extractMathExpression(prompt) {
   const normalizedPrompt = normalizeMathPrompt(prompt);
-  const allowedToken = "(?:\\b(?:sqrt|sin|cos|tan|abs|round|floor|ceil|pi|e)\\b|x|\\d+(?:\\.\\d+)?|[+\\-*/^%().=])";
-  const expressionPattern = new RegExp(`${allowedToken}(?:\\s*${allowedToken})+`, "gi");
-  const matches = normalizedPrompt.match(expressionPattern) || [];
+  const equationMatch = normalizedPrompt.match(/[-+*/^().\dxX\s]+=[-+*/^().\dxX\s]+/);
 
-  return matches
+  if (equationMatch) {
+    return equationMatch[0].trim();
+  }
+
+  const expressionMatch = normalizedPrompt.match(/[-+*/^().\d\s]+/g);
+
+  if (!expressionMatch) {
+    return "";
+  }
+
+  return expressionMatch
     .map((expression) => expression.trim())
-    .filter((expression) => /\d|pi|e|x/.test(expression) && /[+\-*/^%=]|sqrt|sin|cos|tan|abs|round|floor|ceil/.test(expression))
+    .filter((expression) => /\d/.test(expression) && /[+\-*/^]/.test(expression))
     .sort((a, b) => b.length - a.length)[0] || "";
 }
 
 function tokenizeMathExpression(expression) {
-  const tokens = expression.match(/\d+(?:\.\d+)?|\b(?:sqrt|sin|cos|tan|abs|round|floor|ceil|pi|e)\b|x|[+\-*/^%()=]/gi) || [];
-  return tokens.map((token) => token.toLowerCase());
+  return expression.match(/\d+(?:\.\d+)?|[+\-*/^()]/g) || [];
 }
 
-function insertImplicitMultiplication(tokens) {
+function toReversePolishNotation(tokens) {
   const output = [];
-  const isValueEnd = (token) => /^\d/.test(token) || token === "x" || token in mathConstants || token === ")" || token === "%";
-  const isValueStart = (token) => /^\d/.test(token) || token === "x" || token in mathConstants || token === "(" || token in mathFunctions;
+  const operators = [];
+  const precedence = { "+": 1, "-": 1, "*": 2, "/": 2, "u-": 3, "^": 4 };
+  const rightAssociative = new Set(["^"]);
+  let previousToken = "";
 
   tokens.forEach((token) => {
-    const previousToken = output.at(-1);
-
-    if (previousToken && isValueEnd(previousToken) && isValueStart(token)) {
-      output.push("*");
+    if (/^\d/.test(token)) {
+      output.push(token);
+      previousToken = "number";
+      return;
     }
 
-    output.push(token);
+    if (token === "(") {
+      operators.push(token);
+      previousToken = token;
+      return;
+    }
+
+    if (token === ")") {
+      while (operators.length && operators.at(-1) !== "(") {
+        output.push(operators.pop());
+      }
+      operators.pop();
+      previousToken = token;
+      return;
+    }
+
+    const operator = token === "-" && (!previousToken || previousToken === "(" || precedence[previousToken])
+      ? "u-"
+      : token;
+
+    while (
+      operators.length &&
+      operators.at(-1) !== "(" &&
+      precedence[operators.at(-1)] >= precedence[operator] &&
+      !rightAssociative.has(operator)
+    ) {
+      output.push(operators.pop());
+    }
+
+    operators.push(operator);
+    previousToken = operator;
   });
+
+  while (operators.length) {
+    output.push(operators.pop());
+  }
 
   return output;
 }
 
-function createMathParser(tokens, variables = {}) {
-  let position = 0;
-  const peek = () => tokens[position];
-  const consume = (expectedToken) => {
-    if (expectedToken && peek() !== expectedToken) {
-      return false;
-    }
+function evaluateMathExpression(expression) {
+  const explicitExpression = expression
+    .replace(/(\d|\))\s*(\()/g, "$1*$2")
+    .replace(/(\))\s*(\d)/g, "$1*$2");
+  const tokens = tokenizeMathExpression(explicitExpression);
+  const reversePolishNotation = toReversePolishNotation(tokens);
+  const stack = [];
 
-    position += 1;
-    return true;
-  };
-
-  const parseExpression = () => {
-    let value = parseTerm();
-
-    while (peek() === "+" || peek() === "-") {
-      const operator = tokens[position++];
-      const nextValue = parseTerm();
-      value = operator === "+" ? value + nextValue : value - nextValue;
-    }
-
-    return value;
-  };
-
-  const parseTerm = () => {
-    let value = parsePower();
-
-    while (peek() === "*" || peek() === "/") {
-      const operator = tokens[position++];
-      const nextValue = parsePower();
-      value = operator === "*" ? value * nextValue : value / nextValue;
-    }
-
-    return value;
-  };
-
-  const parsePower = () => {
-    let value = parseUnary();
-
-    if (peek() === "^") {
-      consume("^");
-      value **= parsePower();
-    }
-
-    return value;
-  };
-
-  const parseUnary = () => {
-    if (consume("+")) return parseUnary();
-    if (consume("-")) return -parseUnary();
-    return parsePercent();
-  };
-
-  const parsePercent = () => {
-    let value = parsePrimary();
-
-    while (consume("%")) {
-      value /= 100;
-    }
-
-    return value;
-  };
-
-  const parsePrimary = () => {
-    const token = tokens[position++];
-
-    if (!token) {
-      return Number.NaN;
-    }
-
+  reversePolishNotation.forEach((token) => {
     if (/^\d/.test(token)) {
-      return Number(token);
+      stack.push(Number(token));
+      return;
     }
 
-    if (token === "x") {
-      return variables.x;
+    if (token === "u-") {
+      stack.push(-stack.pop());
+      return;
     }
 
-    if (token in mathConstants) {
-      return mathConstants[token];
-    }
+    const right = stack.pop();
+    const left = stack.pop();
 
-    if (token in mathFunctions) {
-      if (!consume("(")) {
-        return mathFunctions[token](parseUnary());
-      }
+    if (token === "+") stack.push(left + right);
+    if (token === "-") stack.push(left - right);
+    if (token === "*") stack.push(left * right);
+    if (token === "/") stack.push(left / right);
+    if (token === "^") stack.push(left ** right);
+  });
 
-      const value = parseExpression();
-      return consume(")") ? mathFunctions[token](value) : Number.NaN;
-    }
-
-    if (token === "(") {
-      const value = parseExpression();
-      return consume(")") ? value : Number.NaN;
-    }
-
-    return Number.NaN;
-  };
-
-  return {
-    parse() {
-      const value = parseExpression();
-      return position === tokens.length ? value : Number.NaN;
-    },
-  };
-}
-
-function evaluateMathExpression(expression, variables = {}) {
-  const tokens = insertImplicitMultiplication(tokenizeMathExpression(expression));
-
-  if (!tokens.length) {
+  if (stack.length !== 1 || !Number.isFinite(stack[0])) {
     return null;
   }
 
-  const value = createMathParser(tokens, variables).parse();
-  return Number.isFinite(value) ? value : null;
+  return stack[0];
 }
 
 function solveLinearEquation(equation) {
   const [leftSide, rightSide] = equation.split("=");
 
-  if (!leftSide || !rightSide || !/[x]/i.test(equation)) {
+  if (!/[xX]/.test(leftSide + rightSide)) {
     return null;
   }
 
-  const expression = `(${leftSide})-(${rightSide})`;
-  const valueAtZero = evaluateMathExpression(expression, { x: 0 });
-  const valueAtOne = evaluateMathExpression(expression, { x: 1 });
+  const evaluateAt = (side, xValue) =>
+    evaluateMathExpression(side.replace(/[xX]/g, `(${xValue})`));
+  const leftAtZero = evaluateAt(leftSide, 0);
+  const rightAtZero = evaluateAt(rightSide, 0);
+  const leftAtOne = evaluateAt(leftSide, 1);
+  const rightAtOne = evaluateAt(rightSide, 1);
 
-  if (valueAtZero === null || valueAtOne === null) {
+  if ([leftAtZero, rightAtZero, leftAtOne, rightAtOne].some((value) => value === null)) {
     return null;
   }
 
-  const coefficient = valueAtOne - valueAtZero;
+  const coefficient = (leftAtOne - leftAtZero) - (rightAtOne - rightAtZero);
+  const constant = rightAtZero - leftAtZero;
 
-  if (Math.abs(coefficient) < Number.EPSILON) {
+  if (coefficient === 0) {
     return null;
   }
 
-  return -valueAtZero / coefficient;
+  return constant / coefficient;
 }
 
 function formatMathResult(value) {
-  const roundedValue = Math.abs(value) < Number.EPSILON ? 0 : value;
-  return Number.isInteger(roundedValue) ? String(roundedValue) : String(Number(roundedValue.toFixed(8)));
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(8)));
 }
 
 function solveMathPrompt(prompt) {
   const expression = extractMathExpression(prompt);
 
   if (!expression) {
-    return "I can solve arithmetic like “24 / (3 + 5)”, percentages like “15% of 80”, square roots like “sqrt(144)”, and simple linear equations like “2x + 3 = 11.”";
+    return "I can solve arithmetic like “24 / (3 + 5)” and simple linear equations like “2x + 3 = 11.” Send me the math problem and I’ll calculate it.";
   }
 
   if (expression.includes("=")) {
@@ -334,13 +275,13 @@ function solveMathPrompt(prompt) {
       return `Math result: solving ${expression} gives x = ${formatMathResult(solution)}.`;
     }
 
-    return `I found the equation “${expression},” but this local math engine currently solves one-variable linear equations only.`;
+    return `I found the equation “${expression},” but this local demo currently handles simple linear equations with one x variable.`;
   }
 
   const result = evaluateMathExpression(expression);
 
   if (result === null) {
-    return `I found “${expression},” but I could not calculate it. Try arithmetic with +, -, *, /, ^, %, parentheses, sqrt(), or a simple equation with x.`;
+    return `I found “${expression},” but I could not calculate it. Try a standard arithmetic expression with +, -, *, /, ^, and parentheses.`;
   }
 
   return `Math result: ${expression} = ${formatMathResult(result)}.`;
@@ -416,6 +357,19 @@ function submitMessage(message) {
   addBotReply(trimmedMessage);
 }
 
+function setMode(mode) {
+  activeMode = mode;
+  modeButtons.forEach((button) => {
+    const isActive = button.dataset.mode === mode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  messages.append(createMessage(modeIntros[mode]));
+  scrollToLatestMessage();
+  input.focus();
+}
+
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   submitMessage(input.value);
@@ -441,6 +395,10 @@ promptButtons.forEach((button) => {
     input.value = button.textContent;
     form.requestSubmit();
   });
+});
+
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
 });
 
 clearButton.addEventListener("click", () => {
